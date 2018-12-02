@@ -1,4 +1,4 @@
-  ## Pre-Crisis Data Bank API PULL
+  ## Pre-Crisis Data Bank API Pull
 
 #### CLI
 ```
