@@ -1,0 +1,9 @@
+.ropeproject/
+__pycache__/
+*.pyc
+output/
+.cache/
+.venv/
+
+!.env-sample
+.env*

@@ -1,0 +1,5 @@
+.venv/
+.cache/
+*.zip
+*.pyc
+output/
