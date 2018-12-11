@@ -131,7 +131,7 @@ class GoApi():
         for summary in [summary_cw, summary_rw]:
             for datum in data:
                 country_detail = datum.get('country')
-                dtype = int(datum.get('dtype'))
+                dtype = int(datum['dtype']['id'])
                 atype = ATYPE[int(datum.get('atype'))]
                 date = datetime_parser.parse(datum.get('start_date'))
                 num_beneficiaries = datum.get('num_beneficiaries')
@@ -148,7 +148,7 @@ class GoApi():
                         continue
                     country = int(country_detail['id'])
                 else:
-                    country = datum.get('region')
+                    country = datum.get('region', {}).get('id')
                     # Skip if region is not provided
                     if country is None:
                         continue
