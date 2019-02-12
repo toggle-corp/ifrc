@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 Ref: https://www.acleddata.com/wp-content/uploads/2013/12/API-User-Guide-August-2017.pdf  # noqa
 """
 
-ACLED_API_RAW = 'https://api.acleddata.com/acled/read'
-ACLED_API = 'https://api.acleddata.com/acled/read?limit=0'
+# ACLED_API_RAW = 'https://api.acleddata.com/acled/read'
+ACLED_API = 'https://api.acleddata.com/acled/read?limit=0&terms=accept'
 
 
 class AcledApi():
@@ -51,7 +51,7 @@ class AcledApi():
         if not self.data:
             print('Pulling Acled Data')
             response = requests.get(ACLED_API)
-            self.data = response.json().get('data', [])
+            self.data = response.json()['data']
             dump_json_to_file(self.data_filename, self.data)
         print('Re-calculating Acled Data')
         self.summary = {

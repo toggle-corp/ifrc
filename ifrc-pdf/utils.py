@@ -31,6 +31,7 @@ import re
 import PyPDF2
 import asyncio
 import aiohttp
+import aiofiles
 import logging
 from io import BytesIO
 from bs4 import BeautifulSoup as bsoup
@@ -50,10 +51,13 @@ def re_ignorecase_text(text):
 
 
 def get_files_in_directory(directory):
-    return [
-        os.path.join(directory, file) for file in os.listdir(directory)
-        if os.path.isfile(os.path.join(directory, file))
-    ]
+    try:
+        return [
+            os.path.join(directory, file) for file in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, file))
+        ]
+    except FileNotFoundError:
+        return []
 
 
 def convert_pdf_to_text(file):
@@ -119,31 +123,32 @@ def convert_pdf_to_text_blocks(file, cache_dir):
 
 
 def async_download(url_with_filenames, headers=None, exception_handler=None):
-    async def async_save_to_file(filename, content):
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, 'wb') as fp:
-            async for chunk in content:
-                fp.write(chunk)
-
     async def _async_fetch():
         async def r_fetch(session, url, filename):
             logger.info('Downloading {} -> {}'.format(url, filename))
             try:
-                async with session.get(url, headers=headers) as response:
+                async with session.get(url) as response:
                     try:
-                        await async_save_to_file(filename, response.content)
+                        os.makedirs(os.path.dirname(filename), exist_ok=True)
+                        async with aiofiles.open(filename, 'wb') as fp:
+                            while True:
+                                chunk = await response.content.read(1024)
+                                if not chunk:
+                                    break
+                                await fp.write(chunk)
                         logger.info(
                             'Download Success {} -> {}'.format(url, filename)
                         )
                         return filename
                     except Exception as e:
                         if exception_handler is not None:
-                            exception_handler(e, response=response, url=url)
+                            exception_handler(e, response=response, url=url, filename=filename)
             except Exception as e:
                 if exception_handler is not None:
-                    exception_handler(e, url=url)
+                    exception_handler(e, url=url, filename=filename)
+        conn = aiohttp.TCPConnector(limit_per_host=5)
         tasks = []
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
             for url, filename in url_with_filenames:
                 task = asyncio.ensure_future(r_fetch(session, url, filename))
                 tasks.append(task)

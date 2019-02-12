@@ -5,5 +5,5 @@ output/
 .cache/
 .venv/
 
-!.env-sample
 .env*
+!.env-sample

@@ -3,7 +3,6 @@ import click
 import time
 import json
 from pandas.io.json import json_normalize
-import traceback
 from extractor import MetaFieldExtractor, SectorFieldExtractor
 from config import (
     _mfd,
@@ -137,12 +136,15 @@ def start_extraction(cache_dir, output_dir, download, test):
 
     for directory, fields in pdf_types:
         files = get_files_in_directory(os.path.join(FILES_DIR, directory))
+        OUTPUT[directory] = []
+        OUTPUT_WITH_SCORE[directory] = []
+
         if test.lower() == 'true':
             files = files[:5]
         for file in files:
             try:
                 filename = file.split('/')[-1]
-                print('{0}-{1}-{0}'.format('*' * 10, file))
+                print('Processing: {0}'.format(file), end='\r')
                 texts = convert_pdf_to_text_blocks(file, cache_dir=cache_dir)
                 m_texts = texts[:texts.index('Page 2')]
                 m_extractor = MetaFieldExtractor(m_texts, fields)
@@ -151,10 +153,6 @@ def start_extraction(cache_dir, output_dir, download, test):
                 s_data_with_score, s_data = s_extractor.extract_fields()
                 # print_meta_stats(m_data, fields)
                 # print_sector_stats(s_data, sectors, sector_fields)
-                if not OUTPUT.get(directory):
-                    OUTPUT[directory] = []
-                if not OUTPUT_WITH_SCORE.get(directory):
-                    OUTPUT_WITH_SCORE[directory] = []
                 OUTPUT[directory].append({
                     'filename': file.split('/')[-1],
                     'url': file_meta.get('{}__{}'.format(directory, filename)),
@@ -168,7 +166,9 @@ def start_extraction(cache_dir, output_dir, download, test):
                     'sector': s_data_with_score,
                 })
             except Exception as e:
-                print(file, traceback.format_exc())
+                print('Proccess Failed!! {} (Error {}: {})'.format(
+                    file, e.__class__.__name__, str(e),
+                ))
                 OUTPUT[directory].append({
                     'filename': file.split('/')[-1],
                     'url': file_meta.get('{}__{}'.format(directory, filename)),
@@ -178,12 +178,14 @@ def start_extraction(cache_dir, output_dir, download, test):
                     'url': file_meta.get('{}__{}'.format(directory, filename)),
                 })
                 ERROR_FILES.append(file)
+            else:
+                print('')
 
-    print('Total Time:', seconds_to_human_readable(time.time() - start))
-    print('*' * 11, 'ERROR FILES', '*' * 11)
-    print(len(ERROR_FILES), ERROR_FILES)
+    print('\nTotal Time: {}'.format(seconds_to_human_readable(time.time() - start)))
+    print('\n{0} ERROR FILES ({1}) {0}'.format('*' * 11, len(ERROR_FILES)))
+    [print('-> {}'.format(file)) for file in ERROR_FILES]
 
-    print('\n **** Saving ****\n')
+    print('\n{0} SAVING {0}'.format('*' * 15))
     output_js = os.path.join(output_dir, 'output.json')
     output_js_with_score = os.path.join(output_dir, 'output_with_score.json')
     os.makedirs(os.path.dirname(output_js), exist_ok=True)

@@ -21,12 +21,20 @@ TYPES = (
     ('ea', 'http://www.ifrc.org/Utils/Search/Rss.ashx?at=246&c=&co=&dt=1&feed=appeals&re=&ti=&zo='), # noqa
 )
 
+ERRORED_URLS = []
 
-def exception_handler(exception, response=None, url=None):
-    logger.error('*' * 44)
-    logger.error('Bad URL for ' + str(url))
-    logger.error(traceback.format_exc())
-    logger.error('*' * 44)
+
+def exception_handler(exception, response=None, url=None, filename=None, retry=False):
+    if not retry:
+        ERRORED_URLS.append((url, filename))
+    # logger.error(traceback.format_exc())
+    logger.error(
+        'Error for URL {} <- {}: {}'.format(
+            str(url),
+            exception.__class__.__name__,
+            str(exception),
+        ),
+    )
 
 
 def get_documents(cache_dir):
@@ -56,11 +64,33 @@ def get_documents(cache_dir):
             ): link
             for link, filename in url_with_filenames
         }, fp)
-    return async_download(
+
+    total_docs = len(url_with_filenames)
+    async_download(
         url_with_filenames,
         headers=HEADERS,
         exception_handler=exception_handler
     )
+
+    # Retry for errored urls using requests
+    errored_docs = len(ERRORED_URLS)
+    logger.warn('{} Success, {} Error downloading docs. Retrying....'.format(
+        total_docs - errored_docs, errored_docs,
+    ))
+    for url, filename in ERRORED_URLS:
+        try:
+            logger.info('Retrying for url {}'.format(url))
+            with requests.get(url, headers=HEADERS, stream=True) as r:
+                with open(filename, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            errored_docs -= 1
+        except Exception as e:
+            exception_handler(e, url=url, retry=True)
+    logger.warn('Total docs: {}'.format(total_docs))
+    logger.warn('Success downloads: {}'.format(total_docs - errored_docs))
+    logger.warn('Error downloads: {}'.format(errored_docs))
 
 
 if __name__ == '__main__':
