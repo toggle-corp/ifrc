@@ -105,12 +105,6 @@ class SectorFieldExtractor():
             sector_score = option['score']
             if not self.field_meta.get(sector):
                 self.field_meta[sector] = {}
-            # if option['score'] < 100:
-            #     print('-' * 22)
-            #     print(option['score'], sector, ':', option['text'])
-            #     print('real_text', option['real_text'],)
-            #     print('search_text', option['search_text'],)
-            #     print('-' * 22)
             for field in SF_KEYS:
                 for field_key in SF_KEYS[field]:
                     search = re.search(field_key, text, re.IGNORECASE)
@@ -189,8 +183,4 @@ class SectorFieldExtractor():
         self.fuzzy_find_remainig_sectors()
         self.post_processing()
         self.extract()
-        # print('*' * 44)
-        # print(self.sector_meta)
-        # print(self.field_meta)
-        # print('*' * 44)
         return self.extracted, self.get_extracted_without_score()

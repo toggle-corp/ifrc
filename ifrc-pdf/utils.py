@@ -1,37 +1,11 @@
-"""
-from io import StringIO
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfpage import PDFPage
-
-# converts pdf, returns its text content as a string
-def convert_pdf_to_text(fname, pages=None):
-    if not pages:
-        pagenums = set()
-    else:
-        pagenums = set(pages)
-
-    with StringIO() as output:
-        manager = PDFResourceManager()
-        converter = TextConverter(manager, output, laparams=LAParams())
-        interpreter = PDFPageInterpreter(manager, converter)
-
-        with open(fname, 'rb') as infile:
-            for page in PDFPage.get_pages(infile, pagenums):
-                print('herer')
-                interpreter.process_page(page)
-
-        converter.close()
-        text = output.getvalue()
-    return text
-"""
 import os
 import re
+import json
 import PyPDF2
 import asyncio
 import aiohttp
 import aiofiles
+import requests
 import logging
 from io import BytesIO
 from bs4 import BeautifulSoup as bsoup
@@ -158,3 +132,22 @@ def async_download(url_with_filenames, headers=None, exception_handler=None):
     loop = asyncio.get_event_loop()
     future = asyncio.ensure_future(_async_fetch())
     return loop.run_until_complete(future)
+
+
+def download_from_url(url, filename, headers):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with requests.get(url, headers=headers, stream=True) as r:
+        with open(filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+
+def load_json_from_file(filename):
+    data = None
+    try:
+        with open(filename, 'r') as fp:
+            data = json.load(fp)
+    except (json.decoder.JSONDecodeError, FileNotFoundError) as e:
+        pass
+    return data

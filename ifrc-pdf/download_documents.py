@@ -3,10 +3,9 @@ import json
 import sys
 import requests
 import xmltodict
-import traceback
 import logging
 
-from utils import async_download
+from utils import async_download, download_from_url
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +37,8 @@ def exception_handler(exception, response=None, url=None, filename=None, retry=F
 
 
 def get_documents(cache_dir):
+    ALREADY_DOWNLOADED = []
+
     def get_documents_for(url, d_type):
         response = requests.get(url)
         items = xmltodict.parse(response.content)['rss']['channel']['item']
@@ -48,10 +49,14 @@ def get_documents(cache_dir):
             filename = os.path.join(
                 cache_dir, 'pdf/{}/{}.pdf'.format(d_type, title)
             )
-            link_with_filenames.append([link, filename])
+            if not os.path.isfile(filename):
+                link_with_filenames.append([link, filename])
+            else:
+                ALREADY_DOWNLOADED.append([link, filename])
         return link_with_filenames
 
     url_with_filenames = []
+    logger.info('Retrieving file list...')
     for d_type, url in TYPES:
         documents = get_documents_for(url, d_type)
         url_with_filenames.extend(documents)
@@ -62,35 +67,38 @@ def get_documents(cache_dir):
             '{}__{}'.format(
                 filename.split('/')[-2], filename.split('/')[-1]
             ): link
-            for link, filename in url_with_filenames
+            for link, filename in url_with_filenames + ALREADY_DOWNLOADED
         }, fp)
 
-    total_docs = len(url_with_filenames)
+    already_downloaded_num = len(ALREADY_DOWNLOADED)
+    total_num_docs = len(url_with_filenames) + len(ALREADY_DOWNLOADED)
     async_download(
         url_with_filenames,
         headers=HEADERS,
         exception_handler=exception_handler
     )
 
-    # Retry for errored urls using requests
-    errored_docs = len(ERRORED_URLS)
-    logger.warn('{} Success, {} Error downloading docs. Retrying....'.format(
-        total_docs - errored_docs, errored_docs,
+    errored_num_docs = len(ERRORED_URLS)
+    logger.warn('{} Already Exsists, {} Success, {} Error downloading docs. {}'.format(
+        already_downloaded_num, total_num_docs - errored_num_docs, errored_num_docs,
+        ' Retrying....' if errored_num_docs else '',
     ))
+
+    # Retry for errored urls using requests
     for url, filename in ERRORED_URLS:
         try:
             logger.info('Retrying for url {}'.format(url))
-            with requests.get(url, headers=HEADERS, stream=True) as r:
-                with open(filename, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-            errored_docs -= 1
+            download_from_url(url, filename, HEADERS)
+            errored_num_docs -= 1
+            logger.info('Success for url {}'.format(url))
         except Exception as e:
             exception_handler(e, url=url, retry=True)
-    logger.warn('Total docs: {}'.format(total_docs))
-    logger.warn('Success downloads: {}'.format(total_docs - errored_docs))
-    logger.warn('Error downloads: {}'.format(errored_docs))
+
+    logger.warn('Total docs: {}'.format(total_num_docs))
+    logger.warn('Already existing docs: {}'.format(already_downloaded_num))
+    logger.warn('Success downloads: {}'.format(len(url_with_filenames)))
+    logger.warn('Error downloads: {}'.format(errored_num_docs))
+    logger.warn('Download Complete')
 
 
 if __name__ == '__main__':

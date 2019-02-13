@@ -12,7 +12,9 @@ from config import (
 from download_documents import get_documents as download_documents
 from common import json_preety, seconds_to_human_readable
 from utils import (
-    convert_pdf_to_text_blocks, get_files_in_directory
+    convert_pdf_to_text_blocks,
+    get_files_in_directory,
+    load_json_from_file,
 )
 
 sectors = [
@@ -108,6 +110,19 @@ def print_sector_stats(data, sectors, fields):
     print(json_preety(data))
 
 
+def filter_not_processed_files(cache_dir, cached_data, directory, files):
+    already_process_files = [
+        '{}/pdf/{}/{}'.format(
+            cache_dir,
+            directory,
+            output.get('filename'),
+        ) for output in cached_data
+    ]
+    return len(already_process_files), [
+        file for file in files if file not in already_process_files
+    ]
+
+
 @click.command()
 @click.option(
     '--cache-dir', prompt='Cache directory', help='Cache directory'
@@ -123,10 +138,13 @@ def print_sector_stats(data, sectors, fields):
 )
 def start_extraction(cache_dir, output_dir, download, test):
     FILES_DIR = os.path.join(cache_dir, 'pdf')
-    OUTPUT_WITH_SCORE = {}
-    OUTPUT = {}
     ERROR_FILES = []
     start = time.time()
+
+    output_js = os.path.join(output_dir, 'output.json')
+    output_js_with_score = os.path.join(output_dir, 'output_with_score.json')
+    OUTPUT = load_json_from_file(output_js) or {}
+    OUTPUT_WITH_SCORE = load_json_from_file(output_js_with_score) or {}
 
     if download.lower() == 'true':
         download_documents(cache_dir=cache_dir)
@@ -136,12 +154,18 @@ def start_extraction(cache_dir, output_dir, download, test):
 
     for directory, fields in pdf_types:
         files = get_files_in_directory(os.path.join(FILES_DIR, directory))
-        OUTPUT[directory] = []
-        OUTPUT_WITH_SCORE[directory] = []
+        OUTPUT[directory] = OUTPUT.get(directory, [])
+        OUTPUT_WITH_SCORE[directory] = OUTPUT_WITH_SCORE.get(directory, [])
 
         if test.lower() == 'true':
             files = files[:5]
-        for file in files:
+        processed_file_len, unprocessed_files = filter_not_processed_files(
+            cache_dir, OUTPUT[directory], directory, files,
+        )
+        print('Already processed for {} : {}'.format(directory, processed_file_len))
+        if len(unprocessed_files):
+            print('Processing remaining docs for {}'.format(directory))
+        for file in unprocessed_files:
             try:
                 filename = file.split('/')[-1]
                 print('Processing: {0}'.format(file), end='\r')
@@ -151,8 +175,7 @@ def start_extraction(cache_dir, output_dir, download, test):
                 s_extractor = SectorFieldExtractor(texts, sectors, sector_fields)
                 m_data_with_score, m_data = m_extractor.extract_fields()
                 s_data_with_score, s_data = s_extractor.extract_fields()
-                # print_meta_stats(m_data, fields)
-                # print_sector_stats(s_data, sectors, sector_fields)
+
                 OUTPUT[directory].append({
                     'filename': file.split('/')[-1],
                     'url': file_meta.get('{}__{}'.format(directory, filename)),
@@ -165,6 +188,7 @@ def start_extraction(cache_dir, output_dir, download, test):
                     'meta': m_data_with_score,
                     'sector': s_data_with_score,
                 })
+
             except Exception as e:
                 print('Proccess Failed!! {} (Error {}: {})'.format(
                     file, e.__class__.__name__, str(e),
@@ -186,8 +210,6 @@ def start_extraction(cache_dir, output_dir, download, test):
     [print('-> {}'.format(file)) for file in ERROR_FILES]
 
     print('\n{0} SAVING {0}'.format('*' * 15))
-    output_js = os.path.join(output_dir, 'output.json')
-    output_js_with_score = os.path.join(output_dir, 'output_with_score.json')
     os.makedirs(os.path.dirname(output_js), exist_ok=True)
     os.makedirs(os.path.dirname(output_js_with_score), exist_ok=True)
     with open(output_js, 'w') as fp:
@@ -215,5 +237,7 @@ def start_extraction(cache_dir, output_dir, download, test):
 
 
 if __name__ == '__main__':
+    import logging
+    import sys
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     start_extraction()
-# start_extraction(cache_dir='.cache', output_dir='output')

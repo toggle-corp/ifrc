@@ -103,12 +103,6 @@ class MetaFieldExtractor():
         text_block = meta['text']
         text_index = meta['text_index']
         end_index = meta['end_index']
-        # if meta['score'] < 100:
-        #     print('-' * 22)
-        #     print(field, ':', text_block)
-        #     print('real_text', meta['real_text'],)
-        #     print('search_text', meta['search_text'],)
-        #     print('-' * 22)
         if len(self.text_meta[text_index]) > 1:
             near_end_index = 10000
             for field in self.text_meta[text_index]:
