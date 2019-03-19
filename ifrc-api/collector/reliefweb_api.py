@@ -33,9 +33,9 @@ def pull_data(url, payload, data_collector=[]):
 
 
 RELIEFWEB_API = 'https://api.reliefweb.int/v1'
-R_DISASTERS_URL = RELIEFWEB_API + '/disasters?appname=apidoc'
-R_DISASTER_URL = RELIEFWEB_API + '/disasters/{}?appname=apidoc'
-R_REPORTS_URL = RELIEFWEB_API + '/reports?appname=apidoc'
+R_DISASTERS_URL = RELIEFWEB_API + '/disasters?appname=ifrc-go'
+R_DISASTER_URL = RELIEFWEB_API + '/disasters/{}?appname=ifrc-go'
+R_REPORTS_URL = RELIEFWEB_API + '/reports?appname=ifrc-go'
 PRIMARY_COUNTRY_ISO3_FIELDNAME = 'primary_country.iso3'
 
 DISASTER_TRANSLATE_IFRC = {
@@ -151,7 +151,8 @@ class ReliefWebApi():
                         'date': date,
                     }
                 ))
-        return async_post(urls_with_params)
+        response = async_post(urls_with_params, limit_per_host=10)
+        return response
 
         """
         return await asyncio.gather(*tasks)

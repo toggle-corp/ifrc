@@ -14,6 +14,7 @@ from .config import settings
 
 
 datetime_now = datetime.now()
+HEADERS = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:63.0) Gecko/20100101 Firefox/63.0'}
 
 
 def normal_to_camel_case(name=''):
@@ -175,9 +176,10 @@ async def _async_fetch(url_with_params, headers, exception_handler):
         return responses
 
 
-async def _async_post(urls_with_params, exception_handler=None):
+async def _async_post(urls_with_params, limit_per_host=5, exception_handler=None):
+    conn = aiohttp.TCPConnector(limit_per_host=limit_per_host)
     tasks = []
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=HEADERS, connector=conn) as session:
         for url, param, return_params in urls_with_params:
             task = asyncio.ensure_future(
                 r_post(session, url, param, return_params, exception_handler)
@@ -195,10 +197,10 @@ def async_fetch(url_with_params, headers=None, exception_handler=None):
     return loop.run_until_complete(future)
 
 
-def async_post(urls_with_params, exception_handler=None):
+def async_post(urls_with_params, limit_per_host=None, exception_handler=None):
     loop = asyncio.get_event_loop()
     future = asyncio.ensure_future(
-        _async_post(urls_with_params, exception_handler)
+        _async_post(urls_with_params, limit_per_host, exception_handler)
     )
     return loop.run_until_complete(future)
 

@@ -23,7 +23,7 @@ def run(output_file, test):
 
     start = time.time()
 
-    hpc_credential = os.environ['HPC_CREDENTIAL']
+    hpc_credential = os.environ.get('HPC_CREDENTIAL')
 
     collector = GoDataSourceCollector(
         path='.cache',
