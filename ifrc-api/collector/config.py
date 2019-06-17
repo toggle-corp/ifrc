@@ -1,5 +1,5 @@
-class NotTestException(Exception):
-    message = 'This is not test'
+class NotCacheException(Exception):
+    message = 'Don\' use cache'
 
 
 class settings():

@@ -1,5 +1,5 @@
 """
-@auther: eoglethorpe
+@author: eoglethorpe
 
 pulling data from FTS for IFRC GO.
 
@@ -31,9 +31,10 @@ import json
 from pandas.io.json import json_normalize
 import dateparser
 import traceback
+from os.path import join as path_join
 
 from .country import get_country_iso3, countries_iso3
-from .common import sync_fetch, base64_encode
+from .common import sync_fetch, base64_encode, load_json_from_file, dump_json_to_file
 
 
 API_END_POINT = 'https://api.hpc.tools/v1/public'
@@ -100,7 +101,9 @@ def api_pull(urls, headers):
 
 
 class FTS(object):
-    def __init__(self, hpc_credential, test=None):
+    DATA_FILENAME = 'funds.json'
+
+    def __init__(self, hpc_credential, path, test=None, use_cache=False):
         """
         hpc_up
             - username:password
@@ -110,6 +113,13 @@ class FTS(object):
         self.headers = {
             'Authorization': 'Basic %s' % base64_encode(hpc_credential)
         }
+        self.data_filename = path_join(path, FTS.DATA_FILENAME)
+        if use_cache:
+            try:
+                self.funds = load_json_from_file(self.data_filename)
+            except FileNotFoundError:
+                print('Cache File Not Found... Calculating Data')
+                self.merge()
 
     def get_urls(self, url):
         """
@@ -187,7 +197,7 @@ class FTS(object):
         """
         join counts and funding amts by building on funds dict
         """
-        print('Pulling FTS Data')
+        print('>> Pulling FTS Data')
         funds = self.pull_funds()
         cnts = self.pull_evt_cnts()
 
@@ -204,11 +214,10 @@ class FTS(object):
                 funds[country][year]['numActivations'] = counts
 
         self.funds = funds
+        dump_json_to_file(self.data_filename, self.funds)
         return self.funds
 
     def get_data(self, country_iso2):
-        if self.funds is None:
-            self.merge()
         return self.funds.get(get_country_iso3(country_iso2))
 
 

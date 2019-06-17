@@ -4,7 +4,7 @@ import logging
 import pandas
 
 from .country import get_country_iso2
-from .config import NotTestException
+from .config import NotCacheException
 from .utils import dataframe_to_nested_dict
 from .common import (
     load_json_from_file, dump_json_to_file, load_csv_to_dict,
@@ -20,7 +20,7 @@ class StartNetworkApi():
     DATA_FILENAME = 'data.csv'
     SUMMARY_FILENAME = 'summary.json'
 
-    def __init__(self, path, test=False):
+    def __init__(self, path, use_cache=False):
         self.data = None
         self.summary = None
 
@@ -30,16 +30,15 @@ class StartNetworkApi():
         )
 
         try:
-            if not test:
-                raise NotTestException()
+            if not use_cache:
+                raise NotCacheException()
             self.data = load_csv_to_dict(self.data_filename)
             self.summary = load_json_from_file(self.summary_filename)
             print('Using Local startnetwork Data')
         except (
                 TypeError, FileNotFoundError, json.decoder.JSONDecodeError,
-                NotTestException,
-        )\
-                as e:
+                NotCacheException,
+        ):
             self.load_data(path)
 
     def get_data_pulled_dt(self):

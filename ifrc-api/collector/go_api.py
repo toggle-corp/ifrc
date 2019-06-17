@@ -4,7 +4,7 @@ import traceback
 from os.path import join as path_join
 from dateutil import parser as datetime_parser
 
-from .config import GoApiFields as _ts, NotTestException
+from .config import GoApiFields as _ts, NotCacheException
 from .common import (
     dump_json_to_file, load_json_from_file,
     get_year_month_formatted, gen_output_path,
@@ -89,7 +89,7 @@ class GoApi():
     DATA_FILENAME = 'data.json'
     SUMMARY_FILENAME = 'summary.json'
 
-    def __init__(self, path, test=False):
+    def __init__(self, path, use_cache=False):
         self.data = None
         # TODO: also calculate for region wise
         self.summary = None
@@ -99,16 +99,15 @@ class GoApi():
         self.summary_filename = path_join(path, GoApi.SUMMARY_FILENAME)
 
         try:
-            if not test:
-                raise NotTestException()
+            if not use_cache:
+                raise NotCacheException()
             self.data = load_json_from_file(self.data_filename)
             self.summary = load_pickle_from_file(self.summary_filename)
             print('Using Local Go Api Data')
         except (
                 TypeError, FileNotFoundError, json.decoder.JSONDecodeError,
-                NotTestException,
-        )\
-                as e:
+                NotCacheException,
+        ):
             self.load_data(path)
 
     def load_data(self, path):

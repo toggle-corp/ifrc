@@ -14,8 +14,8 @@ def request_exception_handler(request, exception):
     print(exception)
 
 
-def get_world_population(test=False):
-    if test:
+def get_world_population(no_cache=False):
+    if no_cache:
         urls = [(API_URL.format(iso3), iso3) for iso3 in countries_iso3[:5]]
     else:
         urls = [(API_URL.format(iso3), iso3) for iso3 in countries_iso3]

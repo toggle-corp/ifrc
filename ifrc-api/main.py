@@ -17,7 +17,10 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 @click.option(
     '--test', default='False', help='Test Run. Few Countries are collected'
 )
-def run(output_file, test):
+@click.option(
+    '--use-cache', default='False', help='Use Cache'
+)
+def run(output_file, test, use_cache):
     from collector import GoDataSourceCollector
     from collector.common import seconds_to_human_readable
 
@@ -29,6 +32,7 @@ def run(output_file, test):
         path='.cache',
         hpc_credential=hpc_credential,
         test=test.lower() == 'true',
+        use_cache=use_cache.lower() == 'true',
     )
     collector.collect()
     collector.dump_json(output_file)

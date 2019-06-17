@@ -6,7 +6,7 @@ from os.path import join as path_join
 import pandas
 
 from .country import get_country_iso3
-from .config import NotTestException
+from .config import NotCacheException
 from .utils import dataframe_to_nested_dict
 from .common import (
     load_json_from_file, dump_json_to_file, get_file_created_iso_date,
@@ -27,7 +27,7 @@ class AcledApi():
     DATA_FILENAME = 'data.json'
     SUMMARY_FILENAME = 'summary.json'
 
-    def __init__(self, path, test=False):
+    def __init__(self, path, use_cache=False):
         self.data = None
         self.summary = None
 
@@ -35,16 +35,15 @@ class AcledApi():
         self.summary_filename = path_join(path, AcledApi.SUMMARY_FILENAME)
 
         try:
-            if not test:
-                raise NotTestException
+            if not use_cache:
+                raise NotCacheException
             self.data = load_json_from_file(self.data_filename)
             self.summary = load_json_from_file(self.summary_filename)
             print('Using Local Acled Data')
         except (
                 TypeError, FileNotFoundError, json.decoder.JSONDecodeError,
-                NotTestException,
-        )\
-                as e:
+                NotCacheException,
+        ):
             self.load_data(path)
 
     def load_data(self, path):

@@ -1,4 +1,3 @@
-import json
 import time
 
 from .country import countries
@@ -52,7 +51,8 @@ class GoDataSourceCollector():
             self,
             path,
             hpc_credential,
-            test=False
+            test=False,
+            use_cache=False,
     ):
         """
         hpc_up
@@ -60,12 +60,13 @@ class GoDataSourceCollector():
         """
         print_break('Initializing')
         self.test = test
-        self.acledApi = AcledApi(gen_output_path('acleddata', path), test=test)
+        self.use_cache = use_cache
+        self.acledApi = AcledApi(gen_output_path('acleddata', path), use_cache=use_cache)
         self.startnetwork = StartNetworkApi(
-            gen_output_path('startnetwork', path), test=test
+            gen_output_path('startnetwork', path), use_cache=use_cache
         )
-        self.goApi = GoApi(gen_output_path('go_api', path), test=test)
-        self.population = get_world_population(test)
+        self.goApi = GoApi(gen_output_path('go_api', path), use_cache=use_cache)
+        self.population = get_world_population(use_cache)
         """
         import pytz
         import datetime
@@ -73,8 +74,9 @@ class GoDataSourceCollector():
         TIMEZONE = pytz.timezone('Asia/Kathmandu')
         start_datetime = datetime.datetime.now(TIMEZONE)
         """
-        self.fts = FTS(hpc_credential, test=test)
-        self.fts.merge()
+        self.fts = FTS(
+            hpc_credential, gen_output_path('fts', path), test=test, use_cache=use_cache,
+        )
         """
         print(
             '%s -- %s' % (
