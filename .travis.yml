@@ -1,0 +1,27 @@
+dist: xenial
+language: python
+python: '3.7'
+
+cache:
+  directories:
+  - ./ifrc-api/output/
+  - $HOME/.cache/pip
+
+before_install:
+  - openssl aes-256-cbc -K $encrypted_f7ef80e9a141_key -iv $encrypted_f7ef80e9a141_iv -in .env.enc -out ifrc-api/.env -d
+
+install:
+  - pip install -r ./ifrc-api/requirements.txt
+
+script:
+  - cd ./ifrc-api
+  - python main.py --output-file output/output.json --test false
+
+deploy:
+  provider: releases
+  api_key:
+    secure: dnH0nvHzgJv3a8gEZloweNVNHvv9X6VRmNxRTDZFHagW2zfzktM8C660LDDGOB1PgsZq50uMv+q8tnnPLoSQNvGnplOUU8r4YRgLF2q191RaPRPHR5gMaA4BQgfVhEN0rn7mLKZXi6iR4udetlj7alK2N1lurLZmxsfmf1lLdI/f/R0K8jk1q2Qqe0EeoBAShI6Ncg/HdEmu03cf1YrqAeaqugvljVBCd6dUHmhSjNfgBPXDmL5lyZwdTVHwkV2UCmChd9lMAxHAj0cZVNRgioEF83eczQDoSb5qm2PACuLk1oV7kBaD4JHm2+gtupmpBTpMCMRr1B0bR0Kzxbm9VJFu1deyDCKVRP3d9qpTtSDf8lTekB8KUK1pt4T/coq5o5upA714o2WqplIOcJNpm7dldbnP83Um/AG9v5QZHCCXvA5NjJHvywDU/vVEeYv6nwuPYDEd1d4pXPOQzBfvfJChv36OPFFSSu0rtZ8E+FdAuo3YU4zdw/MP9coVV2WIuUkRZIfbIhSxXUj5MLxCSe7JMMuek4nFj3yl9h0qf2B8SkiDZ/zmB3S6BwxZ8bReMHPDkiQLnE4xZ1MsMnUyGVI3d3glLiHbnucqgKEE8mOZiyhVtJi/1KuNg3KReY239JbxC/tcBm/momxi27Qwy0dr0/8L6R97vv4IlCIyP4U=
+  file: output/output.json
+  on:
+    repo: toggle-corp/ifrc
+    branch: develop

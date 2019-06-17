@@ -151,7 +151,7 @@ class ReliefWebApi():
                         'date': date,
                     }
                 ))
-        response = async_post(urls_with_params, limit_per_host=10)
+        response = async_post(urls_with_params, limit_per_host=5)
         return response
 
         """
