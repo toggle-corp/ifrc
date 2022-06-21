@@ -1,7 +1,7 @@
 pycountry==18.5.26
 requests==2.20.0
 python-dateutil==2.7.3
-numpy==1.15.0
+numpy==1.22.0
 pandas==0.23.4
 grequests==0.3.0
 dateparser==0.7.0
